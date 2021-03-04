@@ -67,6 +67,9 @@ def precipitation():
 ############Stations
 @app.route("/api/v1.0/stations")
 def stations():
+    station_names = session.query(Station.station).all()
+    #station_dict= dict(station_names)
+    return jsonify(station_names)
 
 #Run App
 if __name__=='__main__':
