@@ -46,8 +46,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"        
-        f"/api/v1.0/<start><br/>"
-        f"/api/v1.0/<start>/<end><br/>"        
+        f"/api/v1.0/< start > Enter the start date in the format yyyy-mm-dd <br/>"
+        f"/api/v1.0/< start >/< end > Enter the start date and end date in the format yyyy-mm-dd <br/>"        
     )
 
 ####Precipitation
@@ -71,6 +71,72 @@ def stations():
     #station_dict= dict(station_names)
     return jsonify(station_names)
 
+
+############Temperature
+@app.route("/api/v1.0/tobs")
+def tobs():
+    # Calculate the date 1 year ago from the last data point in the database
+
+    year_ago = dt.date(2017, 8, 23)-  dt.timedelta(365)
+    year_ago
+
+    ##Temperature observations for most active station for the last year of data
+
+    most_active_summary = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
+                        filter(Measurement.station == 'USC00519281').all()
+
+    return jsonify(most_active_summary)
+
+@app.route("/api/v1.0/<start>")
+def tempstart(start):
+    session = Session(engine)
+
+    start_dt = dt.date(*map(int, start.split('-')))
+
+    tobs_start = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
+                        filter(Measurement.date >= start_dt).all()
+    session.close()
+
+    list_tobs = []
+
+    for tob in tobs_start:
+        tobs_dict = {}
+        tobs_dict[' Min Temperature Recorded'] = tobs_start[0][0]
+        tobs_dict[' Max Temperature Recorded'] = tobs_start[0][1]
+        tobs_dict[' Avg Temperature Recorded'] = tobs_start[0][2]
+        list_tobs.append(tobs_dict)
+    return jsonify(list_tobs)
+
+
+@app.route("/api/v1.0/<start>/<end>")
+def temprange(start,end):
+    session = Session(engine)
+
+    start_dt = dt.date(*map(int, start.split('-')))
+    end_dt = dt.date(*map(int, end.split('-')))
+
+    if (end_dt == ""):
+
+        tobs_start = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
+                        filter(Measurement.date >= start_dt).all()
+    
+    else: 
+        tobs_start = session.query(func.min(Measurement.tobs),func.max(Measurement.tobs),func.avg(Measurement.tobs)).\
+                        filter(Measurement.date >= start_dt).filter(Measurement.date <= end_dt).all()        
+
+    session.close()
+
+    list_tobs = []
+
+    for tob in tobs_start:
+        tobs_dict = {}
+        tobs_dict[' Min Temperature Recorded'] = tobs_start[0][0]
+        tobs_dict[' Max Temperature Recorded'] = tobs_start[0][1]
+        tobs_dict[' Avg Temperature Recorded'] = tobs_start[0][2]
+        list_tobs.append(tobs_dict)
+    return jsonify(list_tobs)
+
+    
 #Run App
 if __name__=='__main__':
     app.run()
